@@ -1,0 +1,55 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: port-scan-exporter
+  labels:
+    app: port-scan-exporter
+spec:
+  template:
+    metadata:
+      labels:
+        app: port-scan-exporter
+    spec:
+      containers:
+        - name: port-scan-exporter
+          image: ghcr.io/gacko/port-scan-exporter:0.9.0
+          ports:
+            - name: metrics
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              port: metrics
+              path: /healthz
+          readinessProbe:
+            httpGet:
+              port: metrics
+              path: /healthz
+          resources:
+            requests:
+              memory: 100Mi
+            limits:
+              memory: 200Mi
+      tolerations:
+        - operator: Exists
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: port-scan-exporter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: port-scan-exporter
+  labels:
+    app: port-scan-exporter
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: metrics
+  selector:
+    app: port-scan-exporter
