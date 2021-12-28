@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/gacko/port-scan-exporter/health"
+	"github.com/gacko/port-scan-exporter/scan"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
@@ -20,6 +21,9 @@ func init() {
 func main() {
 	// Parse arguments.
 	flag.Parse()
+
+	// Schedule scans.
+	scan.Schedule()
 
 	// Register paths.
 	http.Handle("/healthz", health.Handler())
