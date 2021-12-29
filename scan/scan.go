@@ -113,7 +113,7 @@ func (scanner *Scanner) scan() {
 		log.Printf("(pod) name: %v, namespace: %v, IP: %v", pod.Name, pod.Namespace, ip)
 
 		// Iterate networks.
-		for _, network := range []string{"tcp", "udp"} {
+		for _, network := range []string{"tcp"} {
 			// Iterate ports.
 			for port := 1; port <= 65535; port++ {
 				// Obtain concurrency slot and add wait.
