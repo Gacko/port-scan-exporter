@@ -81,7 +81,7 @@ func (scanner *Scanner) connect(network string, ip string, port int) {
 	}
 
 	// Log success.
-	log.Printf("open: %v %v/%d", ip, network, port)
+	log.Printf("port: %v %v/%d", ip, network, port)
 }
 
 // scan runs a scan.
@@ -112,7 +112,7 @@ func (scanner *Scanner) scan() {
 		ip := pod.Status.PodIP
 
 		// Log pod.
-		log.Printf("(pod) name: %v, namespace: %v, IP: %v", pod.Name, pod.Namespace, ip)
+		log.Printf("pod: %v/%v (%v)", pod.Namespace, pod.Name, ip)
 
 		// Iterate networks.
 		for _, network := range []string{"tcp"} {
