@@ -2,9 +2,11 @@ package scan
 
 import (
 	"context"
+	"fmt"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"log"
+	"os"
 	"time"
 )
 
@@ -16,11 +18,21 @@ type Scanner struct {
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
-	// Define context.
+	// Get pod name, pod namespace and node name.
+	podName := os.Getenv("PORT_SCAN_EXPORTER_POD_NAME")
+	podNamespace := os.Getenv("PORT_SCAN_EXPORTER_POD_NAMESPACE")
+	nodeName := os.Getenv("PORT_SCAN_EXPORTER_NODE_NAME")
+	log.Printf("PORT_SCAN_EXPORTER_POD_NAME: %v, PORT_SCAN_EXPORTER_POD_NAMESPACE: %v, PORT_SCAN_EXPORTER_NODE_NAME: %v", podName, podNamespace, nodeName)
+
+	// Define context and options.
 	ctx := context.Background()
+	options := meta.ListOptions{
+		// Select pods of the same node.
+		FieldSelector: fmt.Sprintf("spec.nodeName=%v", nodeName),
+	}
 
 	// Get pods.
-	pods, err := scanner.client.CoreV1().Pods("").List(ctx, meta.ListOptions{})
+	pods, err := scanner.client.CoreV1().Pods("").List(ctx, options)
 	if err != nil {
 		log.Print(err)
 		return
@@ -28,8 +40,13 @@ func (scanner *Scanner) scan() {
 
 	// Iterate pods.
 	for _, pod := range pods.Items {
+		// Ignore host network and self.
+		if pod.Spec.HostNetwork || pod.Name == podName && pod.Namespace == podNamespace {
+			continue
+		}
+
 		// Print pod.
-		log.Print(pod)
+		log.Printf("(Pod) Name: %v, Namespace: %v, Node: %v", pod.Name, pod.Namespace, pod.Spec.NodeName)
 	}
 }
 
@@ -53,7 +70,8 @@ func Schedule(interval time.Duration, client *kubernetes.Clientset) *Scanner {
 		client: client,
 	}
 
-	// Receive ticks.
+	// Start initial scan and receive ticks.
+	go scanner.scan()
 	go scanner.receive()
 
 	// Return scanner.
