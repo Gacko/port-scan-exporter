@@ -23,10 +23,10 @@ func (scanner *Scanner) receive() {
 }
 
 // Schedule schedules scans.
-func Schedule() *Scanner {
+func Schedule(interval time.Duration) *Scanner {
 	// Create scanner.
 	scanner := &Scanner{
-		ticker: time.NewTicker(10 * time.Second),
+		ticker: time.NewTicker(interval),
 	}
 
 	// Receive ticks.

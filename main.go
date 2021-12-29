@@ -7,15 +7,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+	"time"
 )
 
 var (
-	listen string
+	interval time.Duration
+	listen   string
 )
 
 func init() {
 	// Setup arguments.
-	flag.StringVar(&listen, "listen", ":8080", "Listen address of port-scan-exporter.")
+	flag.DurationVar(&interval, "interval", 10*time.Minute, "Interval at which scans are performed.")
+	flag.StringVar(&listen, "listen", ":9882", "Listen address of the exporter.")
 }
 
 func main() {
@@ -23,7 +26,7 @@ func main() {
 	flag.Parse()
 
 	// Schedule scans.
-	scan.Schedule()
+	scan.Schedule(interval)
 
 	// Register paths.
 	http.Handle("/healthz", health.Handler())
