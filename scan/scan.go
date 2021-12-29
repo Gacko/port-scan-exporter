@@ -5,12 +5,17 @@ import (
 	"time"
 )
 
+// Scanner contains all information required for scans.
+type Scanner struct {
+	ticker *time.Ticker
+}
+
 // receive receives ticks and starts scans.
-func receive(ticker *time.Ticker) {
+func (scanner *Scanner) receive() {
 	// Receive ticks.
 	for {
 		select {
-		case tick := <-ticker.C:
+		case tick := <-scanner.ticker.C:
 			// Start scan.
 			log.Println(tick)
 		}
@@ -18,10 +23,15 @@ func receive(ticker *time.Ticker) {
 }
 
 // Schedule schedules scans.
-func Schedule() {
-	// Schedule scan.
-	ticker := time.NewTicker(10 * time.Second)
+func Schedule() *Scanner {
+	// Create scanner.
+	scanner := &Scanner{
+		ticker: time.NewTicker(10 * time.Second),
+	}
 
 	// Receive ticks.
-	go receive(ticker)
+	go scanner.receive()
+
+	// Return scanner.
+	return scanner
 }
