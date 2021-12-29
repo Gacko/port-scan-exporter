@@ -19,7 +19,7 @@ var (
 
 func init() {
 	// Setup arguments.
-	flag.DurationVar(&interval, "interval", 10*time.Minute, "Interval at which scans are performed.")
+	flag.DurationVar(&interval, "interval", time.Minute, "Interval at which scans are performed.")
 	flag.StringVar(&listen, "listen", ":8000", "Listen address of the exporter.")
 }
 
