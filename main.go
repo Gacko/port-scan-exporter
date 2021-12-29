@@ -49,6 +49,6 @@ func main() {
 	// Start HTTP server.
 	log.Printf("listening on %v", listen)
 	if err = http.ListenAndServe(listen, nil); err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 }

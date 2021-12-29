@@ -16,7 +16,7 @@ func (health Health) ServeHTTP(writer http.ResponseWriter, request *http.Request
 
 	// Write body.
 	if _, err := writer.Write([]byte(`{ "status": "ok" }`)); err != nil {
-		log.Println(err)
+		log.Print(err)
 	}
 }
 
