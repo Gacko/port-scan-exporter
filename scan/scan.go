@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"k8s.io/client-go/kubernetes"
 	"log"
 	"time"
 )
@@ -8,6 +9,12 @@ import (
 // Scanner contains all information required for scans.
 type Scanner struct {
 	ticker *time.Ticker
+	client *kubernetes.Clientset
+}
+
+// scan runs a scan.
+func (scanner *Scanner) scan() {
+	log.Println("scan")
 }
 
 // receive receives ticks and starts scans.
@@ -15,18 +22,19 @@ func (scanner *Scanner) receive() {
 	// Receive ticks.
 	for {
 		select {
-		case tick := <-scanner.ticker.C:
+		case <-scanner.ticker.C:
 			// Start scan.
-			log.Println(tick)
+			scanner.scan()
 		}
 	}
 }
 
 // Schedule schedules scans.
-func Schedule(interval time.Duration) *Scanner {
+func Schedule(interval time.Duration, client *kubernetes.Clientset) *Scanner {
 	// Create scanner.
 	scanner := &Scanner{
 		ticker: time.NewTicker(interval),
+		client: client,
 	}
 
 	// Receive ticks.
