@@ -24,7 +24,7 @@ type Scanner struct {
 	client *kubernetes.Clientset
 }
 
-// pods gets selected pods.
+// pods gets filtered pods.
 func (scanner *Scanner) pods() ([]core.Pod, error) {
 	// Get pod name, pod namespace and node name.
 	podName := os.Getenv("PORT_SCAN_EXPORTER_POD_NAME")
@@ -77,16 +77,15 @@ func (scanner *Scanner) connect(network string, ip string, port int) {
 	// Close connection.
 	if err := connection.Close(); err != nil {
 		log.Print(err)
-		return
 	}
 
-	// Log success.
+	// Log port.
 	log.Printf("port: %v %v/%d", ip, network, port)
 }
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
-	// Get pods.
+	// Get filtered pods.
 	pods, err := scanner.pods()
 	if err != nil {
 		log.Print(err)
@@ -143,7 +142,7 @@ func (scanner *Scanner) run() {
 	for {
 		select {
 		case <-ticker.C:
-			// Run scan.
+			// Run periodic scan.
 			scanner.scan()
 		}
 	}
