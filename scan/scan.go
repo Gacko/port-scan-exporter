@@ -7,22 +7,28 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
+	"sync"
 	"time"
 )
 
-// Scanner contains all information required for scans.
+// Scanner contains information required for scans.
 type Scanner struct {
 	ticker *time.Ticker
 	client *kubernetes.Clientset
+	mutex  *sync.Mutex
 }
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
+	// Synchronize access.
+	scanner.mutex.Lock()
+	defer scanner.mutex.Unlock()
+
 	// Get pod name, pod namespace and node name.
 	podName := os.Getenv("PORT_SCAN_EXPORTER_POD_NAME")
 	podNamespace := os.Getenv("PORT_SCAN_EXPORTER_POD_NAMESPACE")
 	nodeName := os.Getenv("PORT_SCAN_EXPORTER_NODE_NAME")
-	log.Printf("PORT_SCAN_EXPORTER_POD_NAME: %v, PORT_SCAN_EXPORTER_POD_NAMESPACE: %v, PORT_SCAN_EXPORTER_NODE_NAME: %v", podName, podNamespace, nodeName)
+	log.Printf("(Self) Name: %v, Namespace: %v, Node: %v", podName, podNamespace, nodeName)
 
 	// Define context and options.
 	ctx := context.Background()
