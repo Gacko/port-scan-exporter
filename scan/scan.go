@@ -2,7 +2,7 @@ package scan
 
 import (
 	"context"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"log"
 	"time"
@@ -20,7 +20,7 @@ func (scanner *Scanner) scan() {
 	ctx := context.Background()
 
 	// Get pods.
-	pods, err := scanner.client.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	pods, err := scanner.client.CoreV1().Pods("").List(ctx, meta.ListOptions{})
 	if err != nil {
 		log.Print(err)
 		return
