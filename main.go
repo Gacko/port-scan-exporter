@@ -13,13 +13,17 @@ import (
 )
 
 var (
-	interval time.Duration
-	listen   string
+	interval    time.Duration
+	concurrency int
+	timeout     time.Duration
+	listen      string
 )
 
 func init() {
 	// Setup arguments.
 	flag.DurationVar(&interval, "interval", time.Minute, "Interval at which scans are performed.")
+	flag.IntVar(&concurrency, "concurrency", 1024, "Number of parallel connection attempts.")
+	flag.DurationVar(&timeout, "timeout", time.Second, "Timeout of connection attempts.")
 	flag.StringVar(&listen, "listen", ":8000", "Listen address of the exporter.")
 }
 
@@ -39,8 +43,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Schedule scans.
-	scan.Schedule(interval, client)
+	// Create scanner.
+	scan.New(scan.Config{
+		Interval:    interval,
+		Concurrency: concurrency,
+		Timeout:     timeout,
+	}, client)
 
 	// Register paths.
 	http.Handle("/healthz", health.Handler())
