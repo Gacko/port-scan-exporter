@@ -15,7 +15,7 @@ var (
 
 func init() {
 	// Setup arguments.
-	flag.StringVar(&listen, "listen", ":8080", "Listen address of port-scan-exporter")
+	flag.StringVar(&listen, "listen", ":8080", "Listen address of port-scan-exporter.")
 }
 
 func main() {
