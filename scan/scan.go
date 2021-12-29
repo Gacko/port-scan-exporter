@@ -68,7 +68,9 @@ func (scanner *Scanner) connect(network string, ip string, port int) {
 	// Connect to address.
 	connection, err := net.DialTimeout(network, address, scanner.config.Timeout)
 	if err != nil {
-		//log.Print(err)
+		//if err.Error() != fmt.Sprintf("dial %v %v: connect: connection refused", network, address) {
+		//	log.Print(err)
+		//}
 		return
 	}
 
@@ -79,7 +81,7 @@ func (scanner *Scanner) connect(network string, ip string, port int) {
 	}
 
 	// Log success.
-	log.Printf("connect: %v/%v", network, address)
+	log.Printf("open: %v %v/%d", ip, network, port)
 }
 
 // scan runs a scan.
