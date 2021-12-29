@@ -15,7 +15,7 @@ import (
 type Scanner struct {
 	ticker *time.Ticker
 	client *kubernetes.Clientset
-	mutex  *sync.Mutex
+	mutex  sync.Mutex
 }
 
 // scan runs a scan.
