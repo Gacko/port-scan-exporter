@@ -28,6 +28,7 @@ type Port struct {
 type Scanner struct {
 	config Config
 	client *kubernetes.Clientset
+	Ports  []Port
 }
 
 // pods gets filtered pods.
@@ -97,6 +98,25 @@ func (scanner *Scanner) scan() {
 		return
 	}
 
+	// Initialize ports, port wait and port channel.
+	var ports []Port
+	portWait := sync.WaitGroup{}
+	portChannel := make(chan Port, scanner.config.Concurrency)
+
+	// Add port wait.
+	portWait.Add(1)
+	// Concurrently receive ports.
+	go func() {
+		// Remove port wait.
+		defer portWait.Done()
+
+		// Receive ports.
+		for port := range portChannel {
+			// Add port.
+			ports = append(ports, port)
+		}
+	}()
+
 	// Initialize wait group and concurrency pool.
 	wait := sync.WaitGroup{}
 	pool := make(chan bool, scanner.config.Concurrency)
@@ -121,14 +141,26 @@ func (scanner *Scanner) scan() {
 					if err := scanner.connect(pod.Status.PodIP, protocol, port); err == nil {
 						// Log pod, protocol and port.
 						log.Printf("%v/%v %v %v/%d", pod.Namespace, pod.Name, pod.Status.PodIP, protocol, port)
+						portChannel <- Port{
+							Pod:      pod,
+							Protocol: protocol,
+							Port:     port,
+						}
 					}
 				}(pod, protocol, port)
 			}
 		}
 	}
 
-	// Wait.
+	// Wait for connections.
 	wait.Wait()
+
+	// Close port channel and wait for ports.
+	close(portChannel)
+	portWait.Wait()
+
+	// Set ports.
+	scanner.Ports = ports
 }
 
 // run runs periodic scans.
