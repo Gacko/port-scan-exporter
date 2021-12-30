@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/gacko/port-scan-exporter/health"
 	"github.com/gacko/port-scan-exporter/scan"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -44,12 +45,16 @@ func main() {
 	}
 
 	// Create scanner.
-	scan.New(scan.Config{
+	scanner := scan.NewScanner(scan.Config{
 		Client:      client,
 		Interval:    interval,
 		Concurrency: concurrency,
 		Timeout:     timeout,
 	})
+
+	// Create and register collector.
+	collector := scan.NewCollector(scanner)
+	prometheus.MustRegister(collector)
 
 	// Register paths.
 	http.Handle("/healthz", health.Handler())

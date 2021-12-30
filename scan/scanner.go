@@ -44,6 +44,14 @@ type Scan struct {
 	Time   time.Time
 }
 
+// Age returns the age of the scan.
+func (scan *Scan) Age() time.Duration {
+	// Calculate age.
+	age := time.Since(scan.Time)
+	// Return age.
+	return age
+}
+
 type Scanner struct {
 	client      *kubernetes.Clientset
 	interval    time.Duration
@@ -160,7 +168,7 @@ func (scanner *Scanner) scan() {
 			switch port.State {
 			case PortOpen:
 				// Add port.
-				// Move out of switch if you want to go out of memory.
+				// Move out of switch if you want to get out of memory.
 				ports = append(ports, port)
 				// Increase open counter.
 				open++
@@ -244,8 +252,8 @@ func (scanner *Scanner) run() {
 	}
 }
 
-// New creates a scanner & runs periodic scans.
-func New(config Config) *Scanner {
+// NewScanner creates a scanner & runs periodic scans.
+func NewScanner(config Config) *Scanner {
 	// Create scanner.
 	scanner := &Scanner{
 		client:      config.Client,
