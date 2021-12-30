@@ -20,7 +20,7 @@ type Config struct {
 }
 
 type Port struct {
-	Pod      core.Pod
+	Pod      *core.Pod
 	Protocol string
 	Port     uint
 }
@@ -75,10 +75,10 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 	return pods, nil
 }
 
-// connect connects to an address by IP, protocol and port.
-func (scanner *Scanner) connect(ip string, protocol string, port uint) error {
+// connect connects to an address by pod, protocol and port.
+func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) error {
 	// Concatenate IP and port.
-	address := fmt.Sprintf("%v:%d", ip, port)
+	address := fmt.Sprintf("%v:%d", pod.Status.PodIP, port)
 
 	// Connect to address.
 	connection, err := net.DialTimeout(protocol, address, scanner.config.Timeout)
@@ -140,13 +140,13 @@ func (scanner *Scanner) scan() {
 				connectionPool <- true
 
 				// Concurrently connect to address by pod, protocol and port.
-				go func(pod core.Pod, protocol string, port uint) {
+				go func(pod *core.Pod, protocol string, port uint) {
 					// Free connection slot and remove connection wait.
 					defer func() { <-connectionPool }()
 					defer connectionWait.Done()
 
-					// Connect to address by IP, protocol and port.
-					if err := scanner.connect(pod.Status.PodIP, protocol, port); err == nil {
+					// Connect to address by pod, protocol and port.
+					if err := scanner.connect(pod, protocol, port); err == nil {
 						// Log pod, protocol and port.
 						log.Printf("%v/%v %v %v/%d", pod.Namespace, pod.Name, pod.Status.PodIP, protocol, port)
 						portChannel <- Port{
@@ -155,7 +155,7 @@ func (scanner *Scanner) scan() {
 							Port:     port,
 						}
 					}
-				}(pod, protocol, port)
+				}(&pod, protocol, port)
 			}
 		}
 	}
