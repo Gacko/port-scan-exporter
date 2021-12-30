@@ -41,6 +41,7 @@ type Scan struct {
 	Closed uint
 	Errors uint
 	Took   time.Duration
+	Time   time.Time
 }
 
 type Scanner struct {
@@ -218,6 +219,7 @@ func (scanner *Scanner) scan() {
 		Closed: closed,
 		Errors: errors,
 		Took:   took,
+		Time:   time.Now(),
 	}
 
 	// Log scan.
