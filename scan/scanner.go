@@ -27,10 +27,16 @@ type Port struct {
 	State    string
 }
 
+type Scan struct {
+	Pods  []core.Pod
+	Ports []Port
+	Took  time.Duration
+}
+
 type Scanner struct {
 	config Config
 	client *kubernetes.Clientset
-	ports  []Port
+	last   Scan
 }
 
 const (
@@ -39,10 +45,10 @@ const (
 	PortError  = "error"
 )
 
-// Ports returns a copy of ports.
-func (scanner *Scanner) Ports() []Port {
-	// Return ports.
-	return scanner.ports
+// Last returns the last scan.
+func (scanner *Scanner) Last() Scan {
+	// Return last scan.
+	return scanner.last
 }
 
 // pods gets filtered pods.
@@ -97,8 +103,6 @@ func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) Port 
 		defer connection.Close()
 		// Set state open.
 		state = PortOpen
-		// Log pod, protocol and port.
-		log.Printf("%v/%v %v %v/%d", pod.Namespace, pod.Name, pod.Status.PodIP, protocol, port)
 	} else if strings.Contains(err.Error(), "connection refused") {
 		// Set state closed.
 		state = PortClosed
@@ -118,11 +122,13 @@ func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) Port 
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
+	// Get start time.
+	start := time.Now()
+
 	// Get pods.
 	pods, err := scanner.pods()
 	if err != nil {
 		log.Print(err)
-		return
 	}
 
 	// Initialize ports, port wait and port channel.
@@ -179,8 +185,18 @@ func (scanner *Scanner) scan() {
 	close(portChannel)
 	portWait.Wait()
 
-	// Set ports.
-	scanner.ports = ports
+	// Get took.
+	took := time.Since(start)
+
+	// Store scan.
+	scanner.last = Scan{
+		Pods:  pods,
+		Ports: ports,
+		Took:  took,
+	}
+
+	// Log scan.
+	log.Printf("scan completed: %d pods, %d ports, took %v", len(pods), len(ports), took)
 }
 
 // run runs periodic scans.
