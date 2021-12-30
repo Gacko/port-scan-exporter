@@ -49,8 +49,8 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 
 	// Filter pods.
 	for _, pod := range allPods.Items {
-		// Ignore host network and self.
-		if !pod.Spec.HostNetwork && !(pod.Name == podName && pod.Namespace == podNamespace) {
+		// Ignore non-running, host network and self.
+		if pod.Status.Phase == core.PodRunning && !pod.Spec.HostNetwork && !(pod.Name == podName && pod.Namespace == podNamespace) {
 			// Append pod.
 			pods = append(pods, pod)
 		}
