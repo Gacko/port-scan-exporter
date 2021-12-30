@@ -30,16 +30,13 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        ports:
-        - name: metrics
-          containerPort: 8000
         livenessProbe:
           httpGet:
-            port: metrics
+            port: 8000
             path: /healthz
         readinessProbe:
           httpGet:
-            port: metrics
+            port: 8000
             path: /healthz
         resources:
           requests:
@@ -63,9 +60,7 @@ spec:
   type: ClusterIP
   clusterIP: None
   ports:
-  - name: metrics
-    port: 8000
-    targetPort: metrics
+  - port: 8000
   selector:
     app: port-scan-exporter
 ---
@@ -87,4 +82,4 @@ spec:
           service:
             name: port-scan-exporter
             port:
-              name: metrics
+              number: 8000
