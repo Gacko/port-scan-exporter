@@ -43,21 +43,6 @@ type Scan struct {
 	Took   time.Duration
 }
 
-// Total calculates the total amount of scanned ports.
-func (scan *Scan) Total() uint {
-	return scan.Open + scan.Closed + scan.Errors
-}
-
-// PodsPerSecond calculates the amount of scanned pods per second.
-func (scan *Scan) PodsPerSecond() float64 {
-	return float64(len(scan.Pods)) / scan.Took.Seconds()
-}
-
-// PortsPerSecond calculates the amount of scanned ports per second.
-func (scan *Scan) PortsPerSecond() float64 {
-	return float64(scan.Total()) / scan.Took.Seconds()
-}
-
 type Scanner struct {
 	client      *kubernetes.Clientset
 	interval    time.Duration
@@ -237,7 +222,6 @@ func (scanner *Scanner) scan() {
 
 	// Log scan.
 	log.Printf("scan: %d pods, %d ports, %d open, %d closed, %d errors, took %v", len(pods), len(ports), open, closed, errors, took)
-	log.Printf("scan: %d total, %f pods/s, %f ports/s", scanner.last.Total(), scanner.last.PodsPerSecond(), scanner.last.PortsPerSecond())
 }
 
 // run runs periodic scans.
