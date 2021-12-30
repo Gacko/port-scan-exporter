@@ -28,7 +28,13 @@ type Port struct {
 type Scanner struct {
 	config Config
 	client *kubernetes.Clientset
-	Ports  []Port
+	ports  []Port
+}
+
+// Ports returns a copy of ports.
+func (scanner *Scanner) Ports() []Port {
+	// Return ports.
+	return scanner.ports
 }
 
 // pods gets filtered pods.
@@ -91,6 +97,8 @@ func (scanner *Scanner) connect(ip string, protocol string, port uint) error {
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
+	log.Printf("before scan: %d ports", len(scanner.ports))
+
 	// Get filtered pods.
 	pods, err := scanner.pods()
 	if err != nil {
@@ -160,7 +168,9 @@ func (scanner *Scanner) scan() {
 	portWait.Wait()
 
 	// Set ports.
-	scanner.Ports = ports
+	scanner.ports = ports
+
+	log.Printf("after scan: %d ports", len(scanner.ports))
 }
 
 // run runs periodic scans.
