@@ -49,38 +49,37 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 
 	// Filter pods.
 	for _, pod := range allPods.Items {
-		// Ignore non-running, host network and self.
-		if pod.Status.Phase == core.PodRunning && !pod.Spec.HostNetwork && !(pod.Name == podName && pod.Namespace == podNamespace) {
-			// Append pod.
-			pods = append(pods, pod)
+		// Ignore self, host network and non-running.
+		if pod.Name == podName && pod.Namespace == podNamespace || pod.Spec.HostNetwork || pod.Status.Phase != core.PodRunning {
+			continue
 		}
+
+		// Append pod.
+		pods = append(pods, pod)
 	}
 
 	// Return pods.
 	return pods, nil
 }
 
-// connect connects to an address by network, IP and port.
-func (scanner *Scanner) connect(network string, ip string, port uint) {
+// connect connects to an address by IP, protocol and port.
+func (scanner *Scanner) connect(ip string, protocol string, port uint) error {
 	// Concatenate IP and port.
 	address := fmt.Sprintf("%v:%d", ip, port)
 
 	// Connect to address.
-	connection, err := net.DialTimeout(network, address, scanner.config.Timeout)
+	connection, err := net.DialTimeout(protocol, address, scanner.config.Timeout)
 	if err != nil {
-		//if err.Error() != fmt.Sprintf("dial %v %v: connect: connection refused", network, address) {
-		//	log.Print(err)
-		//}
-		return
+		// Return error.
+		return err
 	}
 
 	// Close connection.
-	if err := connection.Close(); err != nil {
-		log.Print(err)
-	}
+	//goland:noinspection GoUnhandledErrorResult
+	defer connection.Close()
 
-	// Log port.
-	log.Printf("port: %v %v/%d", ip, network, port)
+	// Return success.
+	return nil
 }
 
 // scan runs a scan.
@@ -92,41 +91,37 @@ func (scanner *Scanner) scan() {
 		return
 	}
 
-	// Initialize concurrency pool and wait group.
-	pool := make(chan bool, scanner.config.Concurrency)
+	// Initialize wait group and concurrency pool.
 	wait := sync.WaitGroup{}
-
-	// Define concurrent connect function.
-	connect := func(network string, ip string, port uint) {
-		// Remove wait and free concurrency slot.
-		defer wait.Done()
-		defer func() { <-pool }()
-		// Connect to address by network, IP and port.
-		scanner.connect(network, ip, port)
-	}
+	pool := make(chan bool, scanner.config.Concurrency)
 
 	// Iterate pods.
 	for _, pod := range pods {
-		// Get pod IP.
-		ip := pod.Status.PodIP
-
-		// Log pod.
-		log.Printf("pod: %v/%v (%v)", pod.Namespace, pod.Name, ip)
-
-		// Iterate networks.
-		for _, network := range []string{"tcp"} {
+		// Iterate protocols.
+		for _, protocol := range []string{"tcp"} {
 			// Iterate ports.
 			for port := uint(1); port <= uint(65535); port++ {
-				// Obtain concurrency slot and add wait.
-				pool <- true
+				// Add wait and obtain concurrency slot.
 				wait.Add(1)
-				// Concurrently connect to address by network, IP and port.
-				go connect(network, ip, port)
+				pool <- true
+
+				// Concurrently connect to address by pod, protocol and port.
+				go func(pod core.Pod, protocol string, port uint) {
+					// Free concurrency slot and remove wait.
+					defer func() { <-pool }()
+					defer wait.Done()
+
+					// Connect to address by IP, protocol and port.
+					if err := scanner.connect(pod.Status.PodIP, protocol, port); err == nil {
+						// Log pod, protocol and port.
+						log.Printf("%v/%v %v %v/%d", pod.Namespace, pod.Name, pod.Status.PodIP, protocol, port)
+					}
+				}(pod, protocol, port)
 			}
 		}
 	}
 
-	// Wait for routines.
+	// Wait.
 	wait.Wait()
 }
 
