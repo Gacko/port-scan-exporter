@@ -67,3 +67,23 @@ spec:
     targetPort: metrics
   selector:
     app: port-scan-exporter
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: port-scan-exporter
+  namespace: monitoring
+  labels:
+    app: port-scan-exporter
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: port-scan-exporter
+            port:
+              name: metrics
