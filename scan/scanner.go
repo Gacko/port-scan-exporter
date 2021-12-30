@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -23,6 +24,7 @@ type Port struct {
 	Pod      *core.Pod
 	Protocol string
 	Port     uint
+	State    string
 }
 
 type Scanner struct {
@@ -30,6 +32,12 @@ type Scanner struct {
 	client *kubernetes.Clientset
 	ports  []Port
 }
+
+const (
+	PortOpen   = "open"
+	PortClosed = "closed"
+	PortError  = "error"
+)
 
 // Ports returns a copy of ports.
 func (scanner *Scanner) Ports() []Port {
@@ -76,30 +84,41 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 }
 
 // connect connects to an address by pod, protocol and port.
-func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) error {
-	// Concatenate IP and port.
-	address := fmt.Sprintf("%v:%d", pod.Status.PodIP, port)
+func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) Port {
+	// Initialize state.
+	var state string
 
-	// Connect to address.
+	// Concatenate and connect to address.
+	address := fmt.Sprintf("%v:%d", pod.Status.PodIP, port)
 	connection, err := net.DialTimeout(protocol, address, scanner.config.Timeout)
-	if err != nil {
-		// Return error.
-		return err
+	if err == nil {
+		// Close connection.
+		//goland:noinspection GoUnhandledErrorResult
+		defer connection.Close()
+		// Set state open.
+		state = PortOpen
+		// Log pod, protocol and port.
+		log.Printf("%v/%v %v %v/%d", pod.Namespace, pod.Name, pod.Status.PodIP, protocol, port)
+	} else if strings.Contains(err.Error(), "connection refused") {
+		// Set state closed.
+		state = PortClosed
+	} else {
+		// Set state error.
+		state = PortError
 	}
 
-	// Close connection.
-	//goland:noinspection GoUnhandledErrorResult
-	defer connection.Close()
-
-	// Return success.
-	return nil
+	// Return port.
+	return Port{
+		Pod:      pod,
+		Protocol: protocol,
+		Port:     port,
+		State:    state,
+	}
 }
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
-	log.Printf("before scan: %d ports", len(scanner.ports))
-
-	// Get filtered pods.
+	// Get pods.
 	pods, err := scanner.pods()
 	if err != nil {
 		log.Print(err)
@@ -113,6 +132,7 @@ func (scanner *Scanner) scan() {
 
 	// Add port wait.
 	portWait.Add(1)
+
 	// Concurrently receive ports.
 	go func() {
 		// Remove port wait.
@@ -146,15 +166,7 @@ func (scanner *Scanner) scan() {
 					defer connectionWait.Done()
 
 					// Connect to address by pod, protocol and port.
-					if err := scanner.connect(pod, protocol, port); err == nil {
-						// Log pod, protocol and port.
-						log.Printf("%v/%v %v %v/%d", pod.Namespace, pod.Name, pod.Status.PodIP, protocol, port)
-						portChannel <- Port{
-							Pod:      pod,
-							Protocol: protocol,
-							Port:     port,
-						}
-					}
+					portChannel <- scanner.connect(pod, protocol, port)
 				}(&pod, protocol, port)
 			}
 		}
@@ -169,8 +181,6 @@ func (scanner *Scanner) scan() {
 
 	// Set ports.
 	scanner.ports = ports
-
-	log.Printf("after scan: %d ports", len(scanner.ports))
 }
 
 // run runs periodic scans.
