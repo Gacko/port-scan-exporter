@@ -15,6 +15,7 @@ import (
 )
 
 type Config struct {
+	Client      *kubernetes.Clientset
 	Interval    time.Duration
 	Concurrency uint
 	Timeout     time.Duration
@@ -43,9 +44,11 @@ type Scan struct {
 }
 
 type Scanner struct {
-	config Config
-	client *kubernetes.Clientset
-	last   Scan
+	client      *kubernetes.Clientset
+	interval    time.Duration
+	concurrency uint
+	timeout     time.Duration
+	last        Scan
 }
 
 // Last returns the last scan.
@@ -99,7 +102,7 @@ func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) Port 
 
 	// Concatenate and connect to address.
 	address := fmt.Sprintf("%v:%d", pod.Status.PodIP, port)
-	connection, err := net.DialTimeout(protocol, address, scanner.config.Timeout)
+	connection, err := net.DialTimeout(protocol, address, scanner.timeout)
 	if err == nil {
 		// Close connection.
 		//goland:noinspection GoUnhandledErrorResult
@@ -140,7 +143,7 @@ func (scanner *Scanner) scan() {
 	// Initialize ports, port wait and port channel.
 	var ports []Port
 	portWait := sync.WaitGroup{}
-	portChannel := make(chan Port, scanner.config.Concurrency)
+	portChannel := make(chan Port, scanner.concurrency)
 
 	// Add port wait.
 	portWait.Add(1)
@@ -172,7 +175,7 @@ func (scanner *Scanner) scan() {
 
 	// Initialize connection wait and connection pool.
 	connectionWait := sync.WaitGroup{}
-	connectionPool := make(chan bool, scanner.config.Concurrency)
+	connectionPool := make(chan bool, scanner.concurrency)
 
 	// Iterate pods.
 	for _, pod := range pods {
@@ -224,7 +227,7 @@ func (scanner *Scanner) scan() {
 // run runs periodic scans.
 func (scanner *Scanner) run() {
 	// Create ticker.
-	ticker := time.NewTicker(scanner.config.Interval)
+	ticker := time.NewTicker(scanner.interval)
 
 	// Run initial scan.
 	scanner.scan()
@@ -240,11 +243,13 @@ func (scanner *Scanner) run() {
 }
 
 // New creates a scanner & runs periodic scans.
-func New(config Config, client *kubernetes.Clientset) *Scanner {
+func New(config Config) *Scanner {
 	// Create scanner.
 	scanner := &Scanner{
-		config: config,
-		client: client,
+		client:      config.Client,
+		interval:    config.Interval,
+		concurrency: config.Concurrency,
+		timeout:     config.Timeout,
 	}
 
 	// Run periodic scans.

@@ -45,10 +45,11 @@ func main() {
 
 	// Create scanner.
 	scan.New(scan.Config{
+		Client:      client,
 		Interval:    interval,
 		Concurrency: concurrency,
 		Timeout:     timeout,
-	}, client)
+	})
 
 	// Register paths.
 	http.Handle("/healthz", health.Handler())
