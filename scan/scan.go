@@ -117,9 +117,9 @@ func (scanner *Scanner) scan() {
 		}
 	}()
 
-	// Initialize wait group and concurrency pool.
-	wait := sync.WaitGroup{}
-	pool := make(chan bool, scanner.config.Concurrency)
+	// Initialize connection wait and connection pool.
+	connectionWait := sync.WaitGroup{}
+	connectionPool := make(chan bool, scanner.config.Concurrency)
 
 	// Iterate pods.
 	for _, pod := range pods {
@@ -127,15 +127,15 @@ func (scanner *Scanner) scan() {
 		for _, protocol := range []string{"tcp"} {
 			// Iterate ports.
 			for port := uint(1); port <= uint(65535); port++ {
-				// Add wait and obtain concurrency slot.
-				wait.Add(1)
-				pool <- true
+				// Add connection wait and obtain connection slot.
+				connectionWait.Add(1)
+				connectionPool <- true
 
 				// Concurrently connect to address by pod, protocol and port.
 				go func(pod core.Pod, protocol string, port uint) {
-					// Free concurrency slot and remove wait.
-					defer func() { <-pool }()
-					defer wait.Done()
+					// Free connection slot and remove connection wait.
+					defer func() { <-connectionPool }()
+					defer connectionWait.Done()
 
 					// Connect to address by IP, protocol and port.
 					if err := scanner.connect(pod.Status.PodIP, protocol, port); err == nil {
@@ -153,7 +153,7 @@ func (scanner *Scanner) scan() {
 	}
 
 	// Wait for connections.
-	wait.Wait()
+	connectionWait.Wait()
 
 	// Close port channel and wait for ports.
 	close(portChannel)
