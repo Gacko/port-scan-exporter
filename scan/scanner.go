@@ -28,9 +28,12 @@ type Port struct {
 }
 
 type Scan struct {
-	Pods  []core.Pod
-	Ports []Port
-	Took  time.Duration
+	Pods   []core.Pod
+	Ports  []Port
+	Open   uint
+	Closed uint
+	Errors uint
+	Took   time.Duration
 }
 
 type Scanner struct {
@@ -122,7 +125,10 @@ func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) Port 
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
-	// Get start time.
+	// Initialize measurements.
+	var open uint
+	var closed uint
+	var errors uint
 	start := time.Now()
 
 	// Get pods.
@@ -146,8 +152,21 @@ func (scanner *Scanner) scan() {
 
 		// Receive ports.
 		for port := range portChannel {
-			// Add port.
-			ports = append(ports, port)
+			// Switch port state.
+			switch port.State {
+			case PortOpen:
+				// Add port.
+				// Move out of switch if you want to go out of memory.
+				ports = append(ports, port)
+				// Increase open counter.
+				open++
+			case PortClosed:
+				// Increase closed counter.
+				closed++
+			case PortError:
+				// Increase errors counter.
+				errors++
+			}
 		}
 	}()
 
@@ -190,13 +209,16 @@ func (scanner *Scanner) scan() {
 
 	// Store scan.
 	scanner.last = Scan{
-		Pods:  pods,
-		Ports: ports,
-		Took:  took,
+		Pods:   pods,
+		Ports:  ports,
+		Open:   open,
+		Closed: closed,
+		Errors: errors,
+		Took:   took,
 	}
 
 	// Log scan.
-	log.Printf("scan completed: %d pods, %d ports, took %v", len(pods), len(ports), took)
+	log.Printf("scan: %d pods, %d ports, %d open, %d closed, %d errors, took %v", len(pods), len(ports), open, closed, errors, took)
 }
 
 // run runs periodic scans.
