@@ -27,6 +27,12 @@ type Port struct {
 	State    string
 }
 
+const (
+	PortOpen   = "open"
+	PortClosed = "closed"
+	PortError  = "error"
+)
+
 type Scan struct {
 	Pods   []core.Pod
 	Ports  []Port
@@ -41,12 +47,6 @@ type Scanner struct {
 	client *kubernetes.Clientset
 	last   Scan
 }
-
-const (
-	PortOpen   = "open"
-	PortClosed = "closed"
-	PortError  = "error"
-)
 
 // Last returns the last scan.
 func (scanner *Scanner) Last() Scan {
