@@ -9,6 +9,11 @@ import (
 type Health struct{}
 
 // ServeHTTP serves health status requests.
+// TODO: Implement health status based on...
+// TODO: - time
+// TODO: - intervals
+// TODO: - scans
+// TODO: ... since last scan.
 func (health Health) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	// Write headers.
 	writer.WriteHeader(http.StatusOK)
