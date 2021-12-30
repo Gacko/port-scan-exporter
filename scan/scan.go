@@ -19,6 +19,12 @@ type Config struct {
 	Timeout     time.Duration
 }
 
+type Port struct {
+	Pod      core.Pod
+	Protocol string
+	Port     uint
+}
+
 type Scanner struct {
 	config Config
 	client *kubernetes.Clientset
