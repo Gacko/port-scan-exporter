@@ -15,7 +15,7 @@ import (
 
 type Config struct {
 	Interval    time.Duration
-	Concurrency int
+	Concurrency uint
 	Timeout     time.Duration
 }
 
@@ -61,7 +61,7 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 }
 
 // connect connects to an address by network, IP and port.
-func (scanner *Scanner) connect(network string, ip string, port int) {
+func (scanner *Scanner) connect(network string, ip string, port uint) {
 	// Concatenate IP and port.
 	address := fmt.Sprintf("%v:%d", ip, port)
 
@@ -97,7 +97,7 @@ func (scanner *Scanner) scan() {
 	wait := sync.WaitGroup{}
 
 	// Define concurrent connect function.
-	connect := func(network string, ip string, port int) {
+	connect := func(network string, ip string, port uint) {
 		// Remove wait and free concurrency slot.
 		defer wait.Done()
 		defer func() { <-pool }()
@@ -116,7 +116,7 @@ func (scanner *Scanner) scan() {
 		// Iterate networks.
 		for _, network := range []string{"tcp"} {
 			// Iterate ports.
-			for port := 1; port <= 65535; port++ {
+			for port := uint(1); port <= uint(65535); port++ {
 				// Obtain concurrency slot and add wait.
 				pool <- true
 				wait.Add(1)
