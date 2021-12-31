@@ -2,6 +2,7 @@ package scan
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"time"
 )
 
 const (
@@ -19,6 +20,7 @@ var (
 type Collector struct {
 	scanner *Scanner
 	ports   *prometheus.Desc
+	age     *prometheus.Desc
 }
 
 // NewCollector creates a collector.
@@ -32,6 +34,12 @@ func NewCollector(scanner *Scanner) *Collector {
 			[]string{"pod", "namespace", "ip", "node", "protocol", "state"},
 			nil,
 		),
+		age: prometheus.NewDesc(
+			prometheus.BuildFQName(Namespace, "", "age"),
+			"Age of last scan in seconds.",
+			nil,
+			nil,
+		),
 	}
 
 	// Return collector.
@@ -42,6 +50,7 @@ func NewCollector(scanner *Scanner) *Collector {
 func (collector *Collector) Describe(channel chan<- *prometheus.Desc) {
 	// Send descriptions.
 	channel <- collector.ports
+	channel <- collector.age
 }
 
 // Collect implements the Collect method of prometheus.Collector.
@@ -92,4 +101,10 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 			}
 		}
 	}
+
+	// Calculate age of last scan.
+	age := time.Since(collector.scanner.last).Seconds()
+
+	// Send age metric.
+	channel <- prometheus.MustNewConstMetric(collector.age, prometheus.GaugeValue, age)
 }

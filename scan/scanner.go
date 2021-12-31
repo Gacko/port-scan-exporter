@@ -57,6 +57,7 @@ func NewScanner(config Config) *Scanner {
 		interval:    config.Interval,
 		concurrency: config.Concurrency,
 		timeout:     config.Timeout,
+		last:        time.Now(),
 	}
 
 	// Run periodic scans.
