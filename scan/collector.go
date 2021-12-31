@@ -68,6 +68,12 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 			protocol := port.Protocol
 			state := port.State
 
+			// Check if protocol exists.
+			if protocols[protocol] == nil {
+				// Define protocol.
+				protocols[protocol] = make(map[byte]uint16)
+			}
+
 			// Increase counter.
 			protocols[protocol][state]++
 		}

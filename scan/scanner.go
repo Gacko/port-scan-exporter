@@ -86,6 +86,8 @@ func (scanner *Scanner) run() {
 
 // scan runs a scan.
 func (scanner *Scanner) scan() {
+	log.Print("scan: starting scan")
+
 	// Get pods.
 	pods, err := scanner.pods()
 	if err != nil {
@@ -166,6 +168,8 @@ func (scanner *Scanner) scan() {
 	// Set scans and time.
 	scanner.scans = scans
 	scanner.last = time.Now()
+
+	log.Printf("scan: finished scanning %d pods", len(pods))
 }
 
 // pods gets filtered pods.
