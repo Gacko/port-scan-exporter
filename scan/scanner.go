@@ -21,49 +21,151 @@ type Config struct {
 	Timeout     time.Duration
 }
 
-type Port struct {
-	Pod      *core.Pod
-	Protocol string
-	Port     uint
-	State    string
-}
-
-const (
-	PortOpen   = "open"
-	PortClosed = "closed"
-	PortError  = "error"
-)
-
-type Scan struct {
-	Pods   []core.Pod
-	Ports  []Port
-	Open   uint
-	Closed uint
-	Errors uint
-	Took   time.Duration
-	Time   time.Time
-}
-
-// Age returns the age of the scan.
-func (scan *Scan) Age() time.Duration {
-	// Calculate age.
-	age := time.Since(scan.Time)
-	// Return age.
-	return age
-}
-
 type Scanner struct {
 	client      *kubernetes.Clientset
 	interval    time.Duration
 	concurrency uint
 	timeout     time.Duration
-	last        Scan
+	scans       []Scan
+	last        time.Time
 }
 
-// Last returns the last scan.
-func (scanner *Scanner) Last() Scan {
-	// Return last scan.
-	return scanner.last
+type Scan struct {
+	Pod   core.Pod
+	Ports []Port
+	Took  time.Duration
+}
+
+type Port struct {
+	Protocol string
+	Port     uint16
+	State    byte
+}
+
+const (
+	ProtocolTCP = "tcp"
+	StateOpen   = byte(iota)
+	StateClosed = byte(iota)
+	StateError  = byte(iota)
+)
+
+// NewScanner creates a scanner & runs periodic scans.
+func NewScanner(config Config) *Scanner {
+	// Create scanner.
+	scanner := &Scanner{
+		client:      config.Client,
+		interval:    config.Interval,
+		concurrency: config.Concurrency,
+		timeout:     config.Timeout,
+	}
+
+	// Run periodic scans.
+	go scanner.run()
+
+	// Return scanner.
+	return scanner
+}
+
+// run runs periodic scans.
+func (scanner *Scanner) run() {
+	// Create ticker.
+	ticker := time.NewTicker(scanner.interval)
+
+	// Run initial scan.
+	scanner.scan()
+
+	// Receive ticks.
+	for {
+		select {
+		case <-ticker.C:
+			// Run periodic scan.
+			scanner.scan()
+		}
+	}
+}
+
+// scan runs a scan.
+func (scanner *Scanner) scan() {
+	// Get pods.
+	pods, err := scanner.pods()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	// Initialize scans.
+	var scans []Scan
+
+	// Iterate pods.
+	for _, pod := range pods {
+		// Get time.
+		start := time.Now()
+
+		// Initialize ports, port wait and port channel.
+		var ports []Port
+		portWait := sync.WaitGroup{}
+		portChannel := make(chan Port, scanner.concurrency)
+
+		// Add port wait.
+		portWait.Add(1)
+
+		// Concurrently receive ports.
+		go func() {
+			// Remove port wait.
+			defer portWait.Done()
+
+			// Receive ports.
+			for port := range portChannel {
+				// Add port.
+				ports = append(ports, port)
+			}
+		}()
+
+		// Initialize connection wait and connection pool.
+		connectionWait := sync.WaitGroup{}
+		connectionPool := make(chan bool, scanner.concurrency)
+
+		// Iterate ports.
+		for port := uint16(1); port >= uint16(1) && port <= uint16(65535); port++ {
+			// Add connection wait and obtain connection slot.
+			connectionWait.Add(1)
+			connectionPool <- true
+
+			// Concurrently connect to address by IP, protocol and port.
+			go func(ip string, protocol string, port uint16) {
+				// Free connection slot and remove connection wait.
+				defer func() { <-connectionPool }()
+				defer connectionWait.Done()
+
+				// Connect to address by IP, protocol and port.
+				portChannel <- scanner.connect(ip, protocol, port)
+			}(pod.Status.PodIP, ProtocolTCP, port)
+		}
+
+		// Wait for connections.
+		connectionWait.Wait()
+
+		// Close port channel and wait for ports.
+		close(portChannel)
+		portWait.Wait()
+
+		// Get took.
+		took := time.Since(start)
+
+		// Create scan.
+		scan := Scan{
+			Pod:   pod,
+			Ports: ports,
+			Took:  took,
+		}
+
+		// Add scan.
+		scans = append(scans, scan)
+	}
+
+	// Set scans and time.
+	scanner.scans = scans
+	scanner.last = time.Now()
 }
 
 // pods gets filtered pods.
@@ -104,167 +206,32 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 	return pods, nil
 }
 
-// connect connects to an address by pod, protocol and port.
-func (scanner *Scanner) connect(pod *core.Pod, protocol string, port uint) Port {
+// connect connects to an address by IP, protocol and port.
+func (scanner *Scanner) connect(ip string, protocol string, port uint16) Port {
 	// Initialize state.
-	var state string
+	var state byte
 
 	// Concatenate and connect to address.
-	address := fmt.Sprintf("%v:%d", pod.Status.PodIP, port)
+	address := fmt.Sprintf("%v:%d", ip, port)
 	connection, err := net.DialTimeout(protocol, address, scanner.timeout)
 	if err == nil {
 		// Close connection.
 		//goland:noinspection GoUnhandledErrorResult
 		defer connection.Close()
 		// Set state open.
-		state = PortOpen
+		state = StateOpen
 	} else if strings.Contains(err.Error(), "connection refused") {
 		// Set state closed.
-		state = PortClosed
+		state = StateClosed
 	} else {
 		// Set state error.
-		state = PortError
+		state = StateError
 	}
 
 	// Return port.
 	return Port{
-		Pod:      pod,
 		Protocol: protocol,
 		Port:     port,
 		State:    state,
 	}
-}
-
-// scan runs a scan.
-func (scanner *Scanner) scan() {
-	// Initialize measurements.
-	var open uint
-	var closed uint
-	var errors uint
-	start := time.Now()
-
-	// Get pods.
-	pods, err := scanner.pods()
-	if err != nil {
-		log.Print(err)
-	}
-
-	// Initialize ports, port wait and port channel.
-	var ports []Port
-	portWait := sync.WaitGroup{}
-	portChannel := make(chan Port, scanner.concurrency)
-
-	// Add port wait.
-	portWait.Add(1)
-
-	// Concurrently receive ports.
-	go func() {
-		// Remove port wait.
-		defer portWait.Done()
-
-		// Receive ports.
-		for port := range portChannel {
-			// Switch port state.
-			switch port.State {
-			case PortOpen:
-				// Add port.
-				// Move out of switch if you want to get out of memory.
-				ports = append(ports, port)
-				// Increase open counter.
-				open++
-			case PortClosed:
-				// Increase closed counter.
-				closed++
-			case PortError:
-				// Increase errors counter.
-				errors++
-			}
-		}
-	}()
-
-	// Initialize connection wait and connection pool.
-	connectionWait := sync.WaitGroup{}
-	connectionPool := make(chan bool, scanner.concurrency)
-
-	// Iterate pods.
-	for _, pod := range pods {
-		// Iterate protocols.
-		for _, protocol := range []string{"tcp"} {
-			// Iterate ports.
-			for port := uint(1); port <= uint(65535); port++ {
-				// Add connection wait and obtain connection slot.
-				connectionWait.Add(1)
-				connectionPool <- true
-
-				// Concurrently connect to address by pod, protocol and port.
-				go func(pod *core.Pod, protocol string, port uint) {
-					// Free connection slot and remove connection wait.
-					defer func() { <-connectionPool }()
-					defer connectionWait.Done()
-
-					// Connect to address by pod, protocol and port.
-					portChannel <- scanner.connect(pod, protocol, port)
-				}(&pod, protocol, port)
-			}
-		}
-	}
-
-	// Wait for connections.
-	connectionWait.Wait()
-
-	// Close port channel and wait for ports.
-	close(portChannel)
-	portWait.Wait()
-
-	// Get took.
-	took := time.Since(start)
-
-	// Store scan.
-	scanner.last = Scan{
-		Pods:   pods,
-		Ports:  ports,
-		Open:   open,
-		Closed: closed,
-		Errors: errors,
-		Took:   took,
-		Time:   time.Now(),
-	}
-
-	// Log scan.
-	log.Printf("scan: %d pods, %d ports, %d open, %d closed, %d errors, took %v", len(pods), len(ports), open, closed, errors, took)
-}
-
-// run runs periodic scans.
-func (scanner *Scanner) run() {
-	// Create ticker.
-	ticker := time.NewTicker(scanner.interval)
-
-	// Run initial scan.
-	scanner.scan()
-
-	// Receive ticks.
-	for {
-		select {
-		case <-ticker.C:
-			// Run periodic scan.
-			scanner.scan()
-		}
-	}
-}
-
-// NewScanner creates a scanner & runs periodic scans.
-func NewScanner(config Config) *Scanner {
-	// Create scanner.
-	scanner := &Scanner{
-		client:      config.Client,
-		interval:    config.Interval,
-		concurrency: config.Concurrency,
-		timeout:     config.Timeout,
-	}
-
-	// Run periodic scans.
-	go scanner.run()
-
-	// Return scanner.
-	return scanner
 }
