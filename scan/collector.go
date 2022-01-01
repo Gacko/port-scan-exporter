@@ -39,8 +39,8 @@ func NewCollector(scanner *Scanner) *Collector {
 	// Create open ports description.
 	open := prometheus.NewDesc(
 		prometheus.BuildFQName(Namespace, "", "open_ports"),
-		"Open ports by pod, namespace, IP, node, protocol, state and port",
-		[]string{"pod", "namespace", "ip", "node", "protocol", "state", "port"},
+		"Open ports by pod, namespace, IP, node, protocol and port",
+		[]string{"pod", "namespace", "ip", "node", "protocol", "port"},
 		nil,
 	)
 
@@ -135,7 +135,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 					collector.open,
 					prometheus.GaugeValue,
 					1,
-					pod, namespace, ip, node, protocol, state, strconv.Itoa(int(port.Port)),
+					pod, namespace, ip, node, protocol, strconv.Itoa(int(port.Port)),
 				)
 			}
 		}
