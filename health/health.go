@@ -14,7 +14,7 @@ type Health struct{}
 // TODO: - intervals
 // TODO: - scans
 // TODO: ... since last scan.
-func (health Health) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (health Health) ServeHTTP(writer http.ResponseWriter, _ *http.Request) {
 	// Write headers.
 	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
