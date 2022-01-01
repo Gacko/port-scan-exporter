@@ -60,6 +60,14 @@ func NewScanner(client *kubernetes.Clientset, interval time.Duration, concurrenc
 	return scanner
 }
 
+// Age calculates age of last scan.
+func (scanner *Scanner) Age() time.Duration {
+	// Calculate age of last scan.
+	age := time.Since(scanner.last)
+	// Return age of last scan.
+	return age
+}
+
 // run runs periodic scans.
 func (scanner *Scanner) run() {
 	// Create ticker.

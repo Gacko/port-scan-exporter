@@ -1,31 +1,37 @@
 package health
 
 import (
-	"log"
+	"github.com/gacko/port-scan-exporter/scan"
 	"net/http"
+	"time"
 )
 
 // Health implements http.Handler for serving health status requests.
-type Health struct{}
+type Health struct {
+	scanner *scan.Scanner
+	age     time.Duration
+}
 
 // ServeHTTP serves health status requests.
-// TODO: Implement health status based on...
-// TODO: - time
-// TODO: - intervals
-// TODO: - scans
-// TODO: ... since last scan.
 func (health Health) ServeHTTP(writer http.ResponseWriter, _ *http.Request) {
-	// Write headers.
-	writer.WriteHeader(http.StatusOK)
-	writer.Header().Set("Content-Type", "application/json")
-
-	// Write body.
-	if _, err := writer.Write([]byte(`{ "status": "ok" }`)); err != nil {
-		log.Print(err)
+	// Check age of last scan.
+	if health.scanner.Age() < health.age {
+		// Write headers.
+		writer.WriteHeader(http.StatusOK)
+	} else {
+		// Write headers.
+		writer.WriteHeader(http.StatusServiceUnavailable)
 	}
 }
 
 // Handler returns a health status handler.
-func Handler() http.Handler {
-	return Health{}
+func Handler(scanner *scan.Scanner, age time.Duration) http.Handler {
+	// Create health status handler.
+	health := Health{
+		scanner: scanner,
+		age:     age,
+	}
+
+	// Return health status handler.
+	return health
 }
