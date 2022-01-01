@@ -2,6 +2,7 @@ package scan
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"strconv"
 )
 
 const (
@@ -12,6 +13,7 @@ type Collector struct {
 	scanner *Scanner
 	pods    *prometheus.Desc
 	ports   *prometheus.Desc
+	open    *prometheus.Desc
 	took    *prometheus.Desc
 	age     *prometheus.Desc
 }
@@ -31,6 +33,14 @@ func NewCollector(scanner *Scanner) *Collector {
 		prometheus.BuildFQName(Namespace, "", "ports"),
 		"Number of ports by pod, namespace, IP, node, protocol and state.",
 		[]string{"pod", "namespace", "ip", "node", "protocol", "state"},
+		nil,
+	)
+
+	// Create open description.
+	open := prometheus.NewDesc(
+		prometheus.BuildFQName(Namespace, "", "open"),
+		"Open ports by pod, namespace, IP, node, protocol, state and port",
+		[]string{"pod", "namespace", "ip", "node", "protocol", "state", "port"},
 		nil,
 	)
 
@@ -55,6 +65,7 @@ func NewCollector(scanner *Scanner) *Collector {
 		scanner: scanner,
 		pods:    pods,
 		ports:   ports,
+		open:    open,
 		took:    took,
 		age:     age,
 	}
@@ -68,6 +79,7 @@ func (collector *Collector) Describe(channel chan<- *prometheus.Desc) {
 	// Send descriptions.
 	channel <- collector.pods
 	channel <- collector.ports
+	channel <- collector.open
 	channel <- collector.took
 	channel <- collector.age
 }
@@ -115,6 +127,16 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 
 			// Increase ports.
 			ports[protocol][state]++
+
+			if state == StateOpen {
+				// Send open metric.
+				channel <- prometheus.MustNewConstMetric(
+					collector.open,
+					prometheus.GaugeValue,
+					1,
+					pod, namespace, ip, node, protocol, state, strconv.Itoa(int(port.Port)),
+				)
+			}
 		}
 
 		// Iterate ports.
