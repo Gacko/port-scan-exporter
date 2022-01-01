@@ -36,7 +36,7 @@ func NewCollector(scanner *Scanner) *Collector {
 		nil,
 	)
 
-	// Create open description.
+	// Create open ports description.
 	open := prometheus.NewDesc(
 		prometheus.BuildFQName(Namespace, "", "open_ports"),
 		"Open ports by pod, namespace, IP, node, protocol, state and port",
@@ -128,8 +128,9 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 			// Increase ports.
 			ports[protocol][state]++
 
+			// Check state.
 			if state == StateOpen {
-				// Send open metric.
+				// Send open ports metric.
 				channel <- prometheus.MustNewConstMetric(
 					collector.open,
 					prometheus.GaugeValue,
