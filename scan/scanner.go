@@ -121,21 +121,25 @@ func (scanner *Scanner) scan() {
 		connectionWait := sync.WaitGroup{}
 		connectionPool := make(chan bool, scanner.concurrency)
 
-		// Iterate ports.
-		for port := uint16(1); port >= uint16(1) && port <= uint16(65535); port++ {
-			// Add connection wait and obtain connection slot.
-			connectionWait.Add(1)
-			connectionPool <- true
+		// Iterate protocols.
+		for _, protocol := range []string{ProtocolTCP} {
+			// Iterate ports.
+			for port := uint16(1); port >= uint16(1) && port <= uint16(65535); port++ {
+				// Add connection wait and obtain connection slot.
+				connectionWait.Add(1)
+				connectionPool <- true
 
-			// Concurrently connect to address by IP, protocol and port.
-			go func(ip string, protocol string, port uint16) {
-				// Free connection slot and remove connection wait.
-				defer func() { <-connectionPool }()
-				defer connectionWait.Done()
+				// Concurrently connect to address by IP, protocol and port.
+				go func(ip string, protocol string, port uint16) {
+					// Free connection slot and remove connection wait.
+					defer func() { <-connectionPool }()
+					defer connectionWait.Done()
 
-				// Connect to address by IP, protocol and port.
-				portChannel <- scanner.connect(ip, protocol, port)
-			}(pod.Status.PodIP, ProtocolTCP, port)
+					// Connect to address by IP, protocol and port.
+					portChannel <- scanner.connect(ip, protocol, port)
+				}(pod.Status.PodIP, protocol, port)
+			}
+
 		}
 
 		// Wait for connections.
