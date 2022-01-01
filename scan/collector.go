@@ -10,12 +10,21 @@ const (
 
 type Collector struct {
 	scanner *Scanner
+	pods    *prometheus.Desc
 	ports   *prometheus.Desc
 	age     *prometheus.Desc
 }
 
 // NewCollector creates a collector.
 func NewCollector(scanner *Scanner) *Collector {
+	// Create pods description.
+	pods := prometheus.NewDesc(
+		prometheus.BuildFQName(Namespace, "", "pods"),
+		"Number of pods by namespace and node",
+		[]string{"namespace", "node"},
+		nil,
+	)
+
 	// Create ports description.
 	ports := prometheus.NewDesc(
 		prometheus.BuildFQName(Namespace, "", "ports"),
@@ -35,6 +44,7 @@ func NewCollector(scanner *Scanner) *Collector {
 	// Create collector.
 	collector := &Collector{
 		scanner: scanner,
+		pods:    pods,
 		ports:   ports,
 		age:     age,
 	}
@@ -46,6 +56,7 @@ func NewCollector(scanner *Scanner) *Collector {
 // Describe implements the Describe method of prometheus.Collector.
 func (collector *Collector) Describe(channel chan<- *prometheus.Desc) {
 	// Send descriptions.
+	channel <- collector.pods
 	channel <- collector.ports
 	channel <- collector.age
 }
@@ -55,31 +66,71 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 	// Get scans.
 	scans := collector.scanner.scans
 
+	// Initialize pods.
+	var pods = make(map[string]map[string]uint)
+
 	// Iterate scans.
 	for _, scan := range scans {
-		// Get pod.
-		pod := scan.Pod
-		name := pod.Name
-		namespace := pod.Namespace
-		ip := pod.Status.PodIP
-		node := pod.Spec.NodeName
+		// Get pod, namespace, IP and node.
+		pod := scan.Pod.Name
+		namespace := scan.Pod.Namespace
+		ip := scan.Pod.Status.PodIP
+		node := scan.Pod.Spec.NodeName
 
-		// Get ports and aggregate protocols.
-		ports := scan.Ports
-		protocols := collector.aggregatePorts(ports)
+		// Check if namespace exists.
+		if pods[namespace] == nil {
+			// Define namespace.
+			pods[namespace] = make(map[string]uint)
+		}
 
-		// Iterate states by protocol.
-		for protocol, states := range protocols {
-			// Iterate counters by state.
+		// Increase pods.
+		pods[namespace][node]++
+
+		// Initialize ports.
+		var ports = make(map[string]map[string]uint16)
+
+		// Iterate ports.
+		for _, port := range scan.Ports {
+			// Get protocol and state.
+			protocol := port.Protocol
+			state := port.State
+
+			// Check if protocol exists.
+			if ports[protocol] == nil {
+				// Define protocol.
+				ports[protocol] = make(map[string]uint16)
+			}
+
+			// Increase ports.
+			ports[protocol][state]++
+		}
+
+		// Iterate ports.
+		for protocol, states := range ports {
+			// Iterate states.
 			for state, counter := range states {
 				// Send port metric.
 				channel <- prometheus.MustNewConstMetric(
 					collector.ports,
 					prometheus.GaugeValue,
 					float64(counter),
-					name, namespace, ip, node, protocol, state,
+					pod, namespace, ip, node, protocol, state,
 				)
 			}
+		}
+	}
+
+	// Iterate pods.
+	for namespace, nodes := range pods {
+		// Iterate nodes.
+		for node, counter := range nodes {
+			// Send pod metric.
+			channel <- prometheus.MustNewConstMetric(
+				collector.pods,
+				prometheus.GaugeValue,
+				float64(counter),
+				namespace, node,
+			)
 		}
 	}
 
@@ -88,29 +139,4 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 
 	// Send age metric.
 	channel <- prometheus.MustNewConstMetric(collector.age, prometheus.GaugeValue, age)
-}
-
-// aggregatePorts aggregates ports by protocol and state.
-func (collector *Collector) aggregatePorts(ports []Port) map[string]map[string]uint16 {
-	// Initialize protocols.
-	var protocols = make(map[string]map[string]uint16)
-
-	// Iterate ports.
-	for _, port := range ports {
-		// Get protocol and state.
-		protocol := port.Protocol
-		state := port.State
-
-		// Check if protocol exists.
-		if protocols[protocol] == nil {
-			// Define protocol.
-			protocols[protocol] = make(map[string]uint16)
-		}
-
-		// Increase counter.
-		protocols[protocol][state]++
-	}
-
-	// Return protocols.
-	return protocols
 }
