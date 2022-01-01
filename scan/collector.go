@@ -38,7 +38,7 @@ func NewCollector(scanner *Scanner) *Collector {
 
 	// Create open description.
 	open := prometheus.NewDesc(
-		prometheus.BuildFQName(Namespace, "", "open"),
+		prometheus.BuildFQName(Namespace, "", "open_ports"),
 		"Open ports by pod, namespace, IP, node, protocol, state and port",
 		[]string{"pod", "namespace", "ip", "node", "protocol", "state", "port"},
 		nil,
