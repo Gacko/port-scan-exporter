@@ -9,14 +9,6 @@ const (
 	Namespace = "port_scan"
 )
 
-var (
-	States = map[byte]string{
-		StateOpen:   "open",
-		StateClosed: "closed",
-		StateError:  "error",
-	}
-)
-
 type Collector struct {
 	scanner *Scanner
 	ports   *prometheus.Desc
@@ -69,7 +61,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 
 		// Get ports and initialize protocols.
 		ports := scan.Ports
-		var protocols = make(map[string]map[byte]uint16)
+		var protocols = make(map[string]map[string]uint16)
 
 		// Iterate ports.
 		for _, port := range ports {
@@ -80,7 +72,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 			// Check if protocol exists.
 			if protocols[protocol] == nil {
 				// Define protocol.
-				protocols[protocol] = make(map[byte]uint16)
+				protocols[protocol] = make(map[string]uint16)
 			}
 
 			// Increase counter.
@@ -96,7 +88,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 					collector.ports,
 					prometheus.GaugeValue,
 					float64(counter),
-					name, namespace, ip, node, protocol, States[state],
+					name, namespace, ip, node, protocol, state,
 				)
 			}
 		}

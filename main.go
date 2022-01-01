@@ -45,12 +45,7 @@ func main() {
 	}
 
 	// Create scanner.
-	scanner := scan.NewScanner(scan.Config{
-		Client:      client,
-		Interval:    interval,
-		Concurrency: concurrency,
-		Timeout:     timeout,
-	})
+	scanner := scan.NewScanner(client, interval, concurrency, timeout)
 
 	// Create and register collector.
 	collector := scan.NewCollector(scanner)

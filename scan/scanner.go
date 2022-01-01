@@ -14,13 +14,6 @@ import (
 	"time"
 )
 
-type Config struct {
-	Client      *kubernetes.Clientset
-	Interval    time.Duration
-	Concurrency uint
-	Timeout     time.Duration
-}
-
 type Scanner struct {
 	client      *kubernetes.Clientset
 	interval    time.Duration
@@ -39,24 +32,24 @@ type Scan struct {
 type Port struct {
 	Protocol string
 	Port     uint16
-	State    byte
+	State    string
 }
 
 const (
 	ProtocolTCP = "tcp"
-	StateOpen   = byte(iota)
-	StateClosed = byte(iota)
-	StateError  = byte(iota)
+	StateOpen   = "open"
+	StateClosed = "closed"
+	StateError  = "error"
 )
 
 // NewScanner creates a scanner & runs periodic scans.
-func NewScanner(config Config) *Scanner {
+func NewScanner(client *kubernetes.Clientset, interval time.Duration, concurrency uint, timeout time.Duration) *Scanner {
 	// Create scanner.
 	scanner := &Scanner{
-		client:      config.Client,
-		interval:    config.Interval,
-		concurrency: config.Concurrency,
-		timeout:     config.Timeout,
+		client:      client,
+		interval:    interval,
+		concurrency: concurrency,
+		timeout:     timeout,
 		last:        time.Now(),
 	}
 
@@ -212,9 +205,12 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 }
 
 // connect connects to an address by IP, protocol and port.
+// Scanning UDP doesn't seem to work out at all...
+// https://www.rawhex.com/blog/2016/07/05/the-ultimate-portscanning-guide-part3-udp-port-scans
+// Furthermore: DNS servers only reply to valid DNS packets whilst NTP only replies to valid NTP.
 func (scanner *Scanner) connect(ip string, protocol string, port uint16) Port {
 	// Initialize state.
-	var state byte
+	var state string
 
 	// Concatenate and connect to address.
 	address := fmt.Sprintf("%v:%d", ip, port)
