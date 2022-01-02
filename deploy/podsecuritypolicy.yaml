@@ -10,8 +10,6 @@ spec:
   hostPID: false
   hostIPC: false
   hostNetwork: false
-  volumes:
-  - secret
   fsGroup:
     rule: MustRunAs
     ranges:
