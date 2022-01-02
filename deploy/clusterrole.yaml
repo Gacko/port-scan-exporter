@@ -12,3 +12,11 @@ rules:
   - pods
   verbs:
   - list
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - port-scan-exporter
+  verbs:
+  - use
