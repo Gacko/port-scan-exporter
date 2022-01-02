@@ -23,9 +23,9 @@ var (
 
 func init() {
 	// Setup arguments.
-	flag.DurationVar(&interval, "interval", time.Minute, "Interval at which scans are performed.")
+	flag.DurationVar(&interval, "interval", 5*time.Minute, "Interval at which scans are performed.")
 	flag.UintVar(&concurrency, "concurrency", 1024, "Number of parallel connection attempts.")
-	flag.DurationVar(&timeout, "timeout", time.Second, "Timeout of connection attempts.")
+	flag.DurationVar(&timeout, "timeout", 100*time.Millisecond, "Timeout of connection attempts.")
 	flag.DurationVar(&age, "age", 10*time.Minute, "Maximum age of last scan.")
 	flag.StringVar(&listen, "listen", ":8000", "Listen address of the exporter.")
 }
