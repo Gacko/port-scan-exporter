@@ -13,6 +13,9 @@ spec:
         app: port-scan-exporter
     spec:
       serviceAccountName: port-scan-exporter
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
       containers:
       - name: port-scan-exporter
         image: ghcr.io/gacko/port-scan-exporter:1.0.0
