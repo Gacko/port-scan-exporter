@@ -62,10 +62,8 @@ func NewScanner(client *kubernetes.Clientset, interval time.Duration, concurrenc
 
 // Age calculates age of last scan.
 func (scanner *Scanner) Age() time.Duration {
-	// Calculate age of last scan.
-	age := time.Since(scanner.last)
-	// Return age of last scan.
-	return age
+	// Calculate and return age of last scan.
+	return time.Since(scanner.last)
 }
 
 // run runs periodic scans.
@@ -188,12 +186,12 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 	// Define context and options.
 	ctx := context.Background()
 	options := meta.ListOptions{
-		// Select pods of the same node.
+		// Select pods of the own node.
 		FieldSelector: fmt.Sprintf("spec.nodeName=%v", nodeName),
 	}
 
-	// Get pods.
-	allPods, err := scanner.client.CoreV1().Pods("").List(ctx, options)
+	// Get pods of the own node.
+	nodePods, err := scanner.client.CoreV1().Pods("").List(ctx, options)
 	if err != nil {
 		return []core.Pod{}, err
 	}
@@ -202,7 +200,7 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 	var pods []core.Pod
 
 	// Filter pods.
-	for _, pod := range allPods.Items {
+	for _, pod := range nodePods.Items {
 		// Ignore self, host network and non-running.
 		if pod.Name == podName && pod.Namespace == podNamespace || pod.Spec.HostNetwork || pod.Status.Phase != core.PodRunning {
 			continue
@@ -217,9 +215,15 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 }
 
 // connect connects to an address by IP, protocol and port.
-// Scanning UDP doesn't seem to work out at all...
+//
+// Packets sent to open ports are usually discarded if they do not comply with the respective protocol.
+// Packets sent to closed ports did not receive ICMP Port Unreachable responses in my tests.
+// The result is therefore ambiguous and scanning an UDP port is difficult or even impossible.
+//
+// https://www.rawhex.com/blog/2016/04/12/the-ultimate-portscanning-guide-part1-theory
+// https://www.rawhex.com/blog/2016/05/26/the-ultimate-portscanning-guide-part2-practical-tcp-port-scans
 // https://www.rawhex.com/blog/2016/07/05/the-ultimate-portscanning-guide-part3-udp-port-scans
-// Furthermore: DNS servers only reply to valid DNS packets whilst NTP only replies to valid NTP.
+//
 func (scanner *Scanner) connect(ip string, protocol string, port uint16) Port {
 	// Initialize state.
 	var state string
