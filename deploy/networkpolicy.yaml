@@ -21,6 +21,9 @@ spec:
     - podSelector:
         matchLabels:
           app.kubernetes.io/name: prometheus
+    - podSelector:
+        matchLabels:
+          app: prometheus
     - ipBlock:
         cidr: 10.0.0.0/8
     - ipBlock:
@@ -45,10 +48,3 @@ spec:
         cidr: 192.168.0.0/16
     - ipBlock:
         cidr: 100.64.0.0/10
-    ports:
-    - protocol: TCP
-      port: 1
-      endPort: 65535
-    - protocol: UDP
-      port: 1
-      endPort: 65535
