@@ -18,7 +18,7 @@ spec:
         runAsGroup: 1000
       containers:
       - name: port-scan-exporter
-        image: ghcr.io/gacko/port-scan-exporter:1.0.0
+        image: ghcr.io/gacko/port-scan-exporter:1.0.1
         env:
         - name: PORT_SCAN_EXPORTER_NODE_NAME
           valueFrom:
