@@ -20,14 +20,6 @@ spec:
       - name: port-scan-exporter
         image: ghcr.io/gacko/port-scan-exporter:1.0.0
         env:
-        - name: PORT_SCAN_EXPORTER_POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: PORT_SCAN_EXPORTER_POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
         - name: PORT_SCAN_EXPORTER_NODE_NAME
           valueFrom:
             fieldRef:

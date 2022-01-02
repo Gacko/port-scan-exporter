@@ -178,9 +178,7 @@ func (scanner *Scanner) scan() {
 
 // pods gets filtered pods.
 func (scanner *Scanner) pods() ([]core.Pod, error) {
-	// Get pod name, pod namespace and node name.
-	podName := os.Getenv("PORT_SCAN_EXPORTER_POD_NAME")
-	podNamespace := os.Getenv("PORT_SCAN_EXPORTER_POD_NAMESPACE")
+	// Get node name.
 	nodeName := os.Getenv("PORT_SCAN_EXPORTER_NODE_NAME")
 
 	// Define context and options.
@@ -201,8 +199,8 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 
 	// Filter pods.
 	for _, pod := range nodePods.Items {
-		// Ignore self, host network and non-running.
-		if pod.Name == podName && pod.Namespace == podNamespace || pod.Spec.HostNetwork || pod.Status.Phase != core.PodRunning {
+		// Ignore host network and non-running.
+		if pod.Spec.HostNetwork || pod.Status.Phase != core.PodRunning {
 			continue
 		}
 
