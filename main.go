@@ -54,8 +54,8 @@ func main() {
 	prometheus.MustRegister(collector)
 
 	// Register paths.
-	http.Handle("/healthz", health.Handler(scanner, age))
 	http.Handle("/metrics", promhttp.Handler())
+	http.Handle("/healthz", health.Handler(scanner, age))
 
 	// Start HTTP server.
 	log.Printf("listening on %v", listen)
