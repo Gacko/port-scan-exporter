@@ -47,6 +47,8 @@ spec:
           limits:
             cpu: 1000m
             memory: 500Mi
+      tolerations:
+      - operator: Exists
   updateStrategy:
     type: RollingUpdate
   selector:
