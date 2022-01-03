@@ -6,11 +6,6 @@ metadata:
   labels:
     {{- include "port-scan-exporter.labels" . | nindent 4 }}
 spec:
-  updateStrategy:
-    type: RollingUpdate
-  selector:
-    matchLabels:
-      {{- include "port-scan-exporter.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -38,21 +33,29 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+          args:
+            - --listen
+            - ":{{ .Values.service.port }}"
           ports:
             - name: metrics
-              containerPort: 8000
               protocol: TCP
+              containerPort: {{ .Values.service.port }}
           livenessProbe:
             httpGet:
-              path: /healthz
               port: metrics
+              path: /healthz
           readinessProbe:
             httpGet:
-              path: /healthz
               port: metrics
+              path: /healthz
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      {{- include "port-scan-exporter.selectorLabels" . | nindent 6 }}
