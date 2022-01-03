@@ -2,7 +2,6 @@ apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: {{ include "port-scan-exporter.fullname" . }}
-  namespace: {{ include "port-scan-exporter.namespace" . }}
   labels:
     {{- include "port-scan-exporter.labels" . | nindent 4 }}
 spec:

@@ -16,6 +16,6 @@ rules:
     resources:
       - podsecuritypolicies
     resourceNames:
-      - port-scan-exporter
+      - {{ include "port-scan-exporter.fullname" . }}
     verbs:
       - use
