@@ -23,33 +23,33 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:
-            - name: PORT_SCAN_EXPORTER_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          args:
-            - --listen
-            - ":{{ .Values.service.port }}"
-          ports:
-            - name: metrics
-              protocol: TCP
-              containerPort: {{ .Values.service.port }}
-          livenessProbe:
-            httpGet:
-              port: metrics
-              path: /healthz
-          readinessProbe:
-            httpGet:
-              port: metrics
-              path: /healthz
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+        - name: PORT_SCAN_EXPORTER_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        args:
+        - --listen
+        - ":{{ .Values.service.port }}"
+        ports:
+        - name: metrics
+          protocol: TCP
+          containerPort: {{ .Values.service.port }}
+        livenessProbe:
+          httpGet:
+            port: metrics
+            path: /healthz
+        readinessProbe:
+          httpGet:
+            port: metrics
+            path: /healthz
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
