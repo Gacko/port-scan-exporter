@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "port-scan-exporter.fullname" . }}-test-connection"
+  labels:
+    {{- include "port-scan-exporter.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "port-scan-exporter.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never
