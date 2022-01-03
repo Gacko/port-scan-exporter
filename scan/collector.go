@@ -10,13 +10,13 @@ const (
 )
 
 type Collector struct {
-	scanner       *Scanner
-	pods          *prometheus.Desc
-	ports         *prometheus.Desc
-	openPorts     *prometheus.Desc
-	took          *prometheus.Desc
-	tookHistogram *prometheus.Desc
-	age           *prometheus.Desc
+	scanner   *Scanner
+	pods      *prometheus.Desc
+	ports     *prometheus.Desc
+	openPorts *prometheus.Desc
+	took      *prometheus.Desc
+	tooks     *prometheus.Desc
+	age       *prometheus.Desc
 }
 
 // NewCollector creates a collector.
@@ -53,9 +53,9 @@ func NewCollector(scanner *Scanner) *Collector {
 		nil,
 	)
 
-	// Create took histogram description.
-	tookHistogram := prometheus.NewDesc(
-		prometheus.BuildFQName(Namespace, "", "took_seconds"),
+	// Create tooks description.
+	tooks := prometheus.NewDesc(
+		prometheus.BuildFQName(Namespace, "", "tooks"),
 		"Scan duration in seconds by namespace and node.",
 		[]string{"pod_namespace", "pod_node"},
 		nil,
@@ -71,13 +71,13 @@ func NewCollector(scanner *Scanner) *Collector {
 
 	// Create collector.
 	collector := &Collector{
-		scanner:       scanner,
-		pods:          pods,
-		ports:         ports,
-		openPorts:     openPorts,
-		took:          took,
-		tookHistogram: tookHistogram,
-		age:           age,
+		scanner:   scanner,
+		pods:      pods,
+		ports:     ports,
+		openPorts: openPorts,
+		took:      took,
+		tooks:     tooks,
+		age:       age,
 	}
 
 	// Return collector.
@@ -91,7 +91,7 @@ func (collector *Collector) Describe(channel chan<- *prometheus.Desc) {
 	channel <- collector.ports
 	channel <- collector.openPorts
 	channel <- collector.took
-	channel <- collector.tookHistogram
+	channel <- collector.tooks
 	channel <- collector.age
 }
 
@@ -100,9 +100,9 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 	// Get scans.
 	scans := collector.scanner.scans
 
-	// Initialize pods and took histogram.
+	// Initialize pods and tooks.
 	var pods = make(map[string]map[string]uint64)
-	var tookHistogram = make(map[string]map[string][]float64)
+	var tooks = make(map[string]map[string][]float64)
 
 	// Iterate scans.
 	for _, scan := range scans {
@@ -175,13 +175,13 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 		)
 
 		// Check if namespace exists.
-		if tookHistogram[namespace] == nil {
+		if tooks[namespace] == nil {
 			// Define namespace.
-			tookHistogram[namespace] = make(map[string][]float64)
+			tooks[namespace] = make(map[string][]float64)
 		}
 
 		// Add took.
-		tookHistogram[namespace][node] = append(tookHistogram[namespace][node], took)
+		tooks[namespace][node] = append(tooks[namespace][node], took)
 	}
 
 	// Iterate pods.
@@ -198,10 +198,10 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 		}
 	}
 
-	// Iterate took histogram.
-	for namespace, nodes := range tookHistogram {
+	// Iterate tooks.
+	for namespace, nodes := range tooks {
 		// Iterate nodes.
-		for node, tooks := range nodes {
+		for node, durations := range nodes {
 			// Initialize sum and buckets.
 			var sum float64
 			buckets := map[float64]uint64{
@@ -213,24 +213,24 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 				16.0: 0,
 			}
 
-			// Iterate tooks.
-			for _, took := range tooks {
+			// Iterate durations.
+			for _, duration := range durations {
 				// Iterate buckets.
 				for bucket := range buckets {
-					// Check took.
-					if took <= bucket {
+					// Check duration.
+					if duration <= bucket {
 						// Increase bucket.
 						buckets[bucket]++
 					}
 				}
-				// Add sum.
-				sum += took
+				// Sum duration.
+				sum += duration
 			}
 
-			// Send took histogram metric.
+			// Send tooks metric.
 			channel <- prometheus.MustNewConstHistogram(
-				collector.tookHistogram,
-				uint64(len(tooks)),
+				collector.tooks,
+				uint64(len(durations)),
 				sum,
 				buckets,
 				namespace, node,
