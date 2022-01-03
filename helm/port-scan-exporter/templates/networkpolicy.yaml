@@ -23,21 +23,19 @@ spec:
         - podSelector:
             matchLabels:
               app: prometheus
-        {{ $privateSubnets := list "10.0.0.0/8" "172.16.0.0/12" "192.168.0.0/16" "100.64.0.0/10" }}
-        {{ range $index, $privateSubnet := $privateSubnets }}
+        {{- range .Values.privateSubnets }}
         - ipBlock:
-            cidr: {{ $privateSubnet }}
-        {{ end }}
-        ports:
-          - protocol: TCP
-            port: 8000
+            cidr: {{ . }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 8000
   egress:
     - to:
         - podSelector:
             matchLabels:
               {{- include "port-scan-exporter.selectorLabels" . | nindent 14 }}
-        {{ $privateSubnets := list "10.0.0.0/8" "172.16.0.0/12" "192.168.0.0/16" "100.64.0.0/10" }}
-        {{ range $index, $privateSubnet := $privateSubnets }}
+        {{- range .Values.privateSubnets }}
         - ipBlock:
-            cidr: {{ $privateSubnet }}
-        {{ end }}
+            cidr: {{ . }}
+        {{- end }}
