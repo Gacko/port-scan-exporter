@@ -5,9 +5,7 @@ metadata:
   labels:
     {{- include "port-scan-exporter.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "port-scan-exporter.selectorLabels" . | nindent 6 }}
