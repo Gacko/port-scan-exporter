@@ -235,7 +235,7 @@ func (scanner *Scanner) connect(ip string, protocol string, port uint16) Port {
 		defer connection.Close()
 		// Set state open.
 		state = StateOpen
-	} else if strings.Contains(err.Error(), "connection refused") {
+	} else if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "i/o timeout") {
 		// Set state closed.
 		state = StateClosed
 	} else {
