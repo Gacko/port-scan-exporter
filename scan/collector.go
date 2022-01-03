@@ -123,7 +123,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 		pods[namespace][node]++
 
 		// Initialize ports.
-		var ports = make(map[string]map[string]uint16)
+		var ports = make(map[byte]map[byte]uint16)
 
 		// Iterate ports.
 		for _, port := range scan.Ports {
@@ -134,7 +134,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 			// Check if protocol exists.
 			if ports[protocol] == nil {
 				// Define protocol.
-				ports[protocol] = make(map[string]uint16)
+				ports[protocol] = make(map[byte]uint16)
 			}
 
 			// Increase ports.
@@ -147,7 +147,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 					collector.openPorts,
 					prometheus.GaugeValue,
 					1,
-					pod, namespace, ip, node, protocol, strconv.Itoa(int(port.Port)),
+					pod, namespace, ip, node, PortStrings[protocol], strconv.Itoa(int(port.Port)),
 				)
 			}
 		}
@@ -161,7 +161,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 					collector.ports,
 					prometheus.GaugeValue,
 					float64(counter),
-					pod, namespace, ip, node, protocol, state,
+					pod, namespace, ip, node, PortStrings[protocol], PortStrings[state],
 				)
 			}
 		}

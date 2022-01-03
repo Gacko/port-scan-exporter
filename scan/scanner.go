@@ -30,16 +30,25 @@ type Scan struct {
 }
 
 type Port struct {
-	Protocol string
+	Protocol byte
 	Port     uint16
-	State    string
+	State    byte
 }
 
 const (
-	ProtocolTCP = "tcp"
-	StateOpen   = "open"
-	StateClosed = "closed"
-	StateError  = "error"
+	ProtocolTCP = byte(iota)
+	StateOpen   = byte(iota)
+	StateClosed = byte(iota)
+	StateError  = byte(iota)
+)
+
+var (
+	PortStrings = []string{
+		"tcp",
+		"open",
+		"closed",
+		"error",
+	}
 )
 
 // NewScanner creates a scanner & runs periodic scans.
@@ -128,7 +137,7 @@ func (scanner *Scanner) scan() {
 		connectionPool := make(chan bool, scanner.concurrency)
 
 		// Iterate protocols.
-		for _, protocol := range []string{ProtocolTCP} {
+		for _, protocol := range []byte{ProtocolTCP} {
 			// Iterate ports.
 			for port := uint16(1); port >= uint16(1) && port <= uint16(65535); port++ {
 				// Add connection wait and obtain connection slot.
@@ -136,7 +145,7 @@ func (scanner *Scanner) scan() {
 				connectionPool <- true
 
 				// Concurrently connect to address by IP, protocol and port.
-				go func(ip string, protocol string, port uint16) {
+				go func(ip string, protocol byte, port uint16) {
 					// Free connection slot and remove connection wait.
 					defer func() { <-connectionPool }()
 					defer connectionWait.Done()
@@ -222,13 +231,13 @@ func (scanner *Scanner) pods() ([]core.Pod, error) {
 // https://www.rawhex.com/blog/2016/05/26/the-ultimate-portscanning-guide-part2-practical-tcp-port-scans
 // https://www.rawhex.com/blog/2016/07/05/the-ultimate-portscanning-guide-part3-udp-port-scans
 //
-func (scanner *Scanner) connect(ip string, protocol string, port uint16) Port {
+func (scanner *Scanner) connect(ip string, protocol byte, port uint16) Port {
 	// Initialize state.
-	var state string
+	var state byte
 
 	// Concatenate and connect to address.
 	address := fmt.Sprintf("%v:%d", ip, port)
-	connection, err := net.DialTimeout(protocol, address, scanner.timeout)
+	connection, err := net.DialTimeout(PortStrings[protocol], address, scanner.timeout)
 	if err == nil {
 		// Close connection.
 		//goland:noinspection GoUnhandledErrorResult
