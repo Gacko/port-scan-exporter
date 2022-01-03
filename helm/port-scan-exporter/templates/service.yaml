@@ -9,9 +9,9 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - name: metrics
-      protocol: TCP
-      port: {{ .Values.service.port }}
-      targetPort: metrics
+  - name: metrics
+    protocol: TCP
+    port: {{ .Values.service.port }}
+    targetPort: metrics
   selector:
     {{- include "port-scan-exporter.selectorLabels" . | nindent 4 }}

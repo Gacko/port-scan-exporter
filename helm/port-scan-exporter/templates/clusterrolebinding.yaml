@@ -9,6 +9,6 @@ roleRef:
   kind: ClusterRole
   name: {{ include "port-scan-exporter.fullname" . }}
 subjects:
-  - kind: ServiceAccount
-    name: {{ include "port-scan-exporter.serviceAccountName" . }}
-    namespace: {{ include "port-scan-exporter.namespace" . }}
+- kind: ServiceAccount
+  name: {{ include "port-scan-exporter.serviceAccountName" . }}
+  namespace: {{ include "port-scan-exporter.namespace" . }}

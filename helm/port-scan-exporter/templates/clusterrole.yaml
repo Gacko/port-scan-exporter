@@ -5,17 +5,17 @@ metadata:
   labels:
     {{- include "port-scan-exporter.labels" . | nindent 4 }}
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-    verbs:
-      - list
-  - apiGroups:
-      - extensions
-    resources:
-      - podsecuritypolicies
-    resourceNames:
-      - {{ include "port-scan-exporter.fullname" . }}
-    verbs:
-      - use
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - {{ include "port-scan-exporter.fullname" . }}
+  verbs:
+  - use
