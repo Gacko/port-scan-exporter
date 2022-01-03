@@ -10,7 +10,6 @@ spec:
   type: {{ .Values.service.type }}
   ports:
   - name: metrics
-    protocol: TCP
     port: {{ .Values.service.port }}
     targetPort: 8000
   selector:

@@ -51,7 +51,7 @@ spec:
         {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
+      {{- toYaml . | nindent 6 }}
       {{- end }}
   updateStrategy:
     type: RollingUpdate
