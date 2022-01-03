@@ -17,15 +17,17 @@ spec:
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+      {{- toYaml . | nindent 6 }}
       {{- end }}
       serviceAccountName: {{ include "port-scan-exporter.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: {{ .Chart.Name }}
+        {{- with .Values.securityContext }}
         securityContext:
-          {{- toYaml .Values.securityContext | nindent 10 }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         env:
@@ -33,23 +35,18 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        args:
-        - --listen
-        - ":{{ .Values.service.port }}"
-        ports:
-        - name: metrics
-          protocol: TCP
-          containerPort: {{ .Values.service.port }}
         livenessProbe:
           httpGet:
-            port: metrics
+            port: 8000
             path: /healthz
         readinessProbe:
           httpGet:
-            port: metrics
+            port: 8000
             path: /healthz
+        {{- with .Values.resources }}
         resources:
-          {{- toYaml .Values.resources | nindent 10 }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}

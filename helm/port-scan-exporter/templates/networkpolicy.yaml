@@ -29,7 +29,7 @@ spec:
     {{- end }}
     ports:
     - protocol: TCP
-      port: {{ .Values.service.port }}
+      port: 8000
   egress:
   - to:
     - podSelector:

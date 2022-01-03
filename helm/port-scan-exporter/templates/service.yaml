@@ -12,6 +12,6 @@ spec:
   - name: metrics
     protocol: TCP
     port: {{ .Values.service.port }}
-    targetPort: metrics
+    targetPort: 8000
   selector:
     {{- include "port-scan-exporter.selectorLabels" . | nindent 4 }}
