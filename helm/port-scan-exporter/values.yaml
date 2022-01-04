@@ -1,5 +1,3 @@
-# Default values for port-scan-exporter.
-
 # Chart.
 nameOverride: ""
 fullnameOverride: ""
@@ -35,6 +33,7 @@ image:
   repository: ghcr.io/gacko/port-scan-exporter
   tag: ""
   pullPolicy: IfNotPresent
+args: []
 resources:
   requests:
     cpu: 250m
