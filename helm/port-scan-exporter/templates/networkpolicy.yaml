@@ -39,3 +39,24 @@ spec:
     - ipBlock:
         cidr: {{ . }}
     {{- end }}
+{{- range .Values.isolatedNamespaces }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "port-scan-exporter.fullname" $ }}
+  namespace: {{ . }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: {{ include "port-scan-exporter.namespace" $ }}
+      podSelector:
+        matchLabels:
+          {{- include "port-scan-exporter.selectorLabels" $ | nindent 10 }}
+{{- end }}

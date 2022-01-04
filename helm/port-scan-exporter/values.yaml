@@ -9,6 +9,7 @@ privateSubnets:
 - 172.16.0.0/12
 - 192.168.0.0/16
 - 100.64.0.0/10
+isolatedNamespaces: []
 
 # Service account.
 serviceAccount:
