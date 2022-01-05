@@ -17,6 +17,7 @@ type Collector struct {
 	took      *prometheus.Desc
 	tooks     *prometheus.Desc
 	age       *prometheus.Desc
+	errors    *prometheus.Desc
 }
 
 // NewCollector creates a collector.
@@ -69,6 +70,14 @@ func NewCollector(scanner *Scanner) *Collector {
 		nil,
 	)
 
+	// Create errors description.
+	errors := prometheus.NewDesc(
+		prometheus.BuildFQName(Namespace, "", "errors_total"),
+		"Total number of scan errors.",
+		nil,
+		nil,
+	)
+
 	// Create collector.
 	collector := &Collector{
 		scanner:   scanner,
@@ -78,6 +87,7 @@ func NewCollector(scanner *Scanner) *Collector {
 		took:      took,
 		tooks:     tooks,
 		age:       age,
+		errors:    errors,
 	}
 
 	// Return collector.
@@ -93,6 +103,7 @@ func (collector *Collector) Describe(channel chan<- *prometheus.Desc) {
 	channel <- collector.took
 	channel <- collector.tooks
 	channel <- collector.age
+	channel <- collector.errors
 }
 
 // Collect implements the Collect method of prometheus.Collector.
@@ -243,4 +254,7 @@ func (collector *Collector) Collect(channel chan<- prometheus.Metric) {
 
 	// Send age metric.
 	channel <- prometheus.MustNewConstMetric(collector.age, prometheus.GaugeValue, age)
+
+	// Send errors metric.
+	channel <- prometheus.MustNewConstMetric(collector.errors, prometheus.CounterValue, float64(collector.scanner.errors))
 }

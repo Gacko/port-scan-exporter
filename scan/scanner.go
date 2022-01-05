@@ -21,6 +21,7 @@ type Scanner struct {
 	timeout     time.Duration
 	scans       []Scan
 	last        time.Time
+	errors      uint64
 }
 
 type Scan struct {
@@ -127,8 +128,19 @@ func (scanner *Scanner) scan() {
 
 			// Receive ports.
 			for port := range portChannel {
-				// Add port.
-				ports = append(ports, port)
+				switch port.State {
+				case StateError:
+					// Increase errors.
+					scanner.errors++
+					// This does not mean this port is open!
+					// It's just used for also appending it.
+					fallthrough
+				case StateOpen:
+					// Add port.
+					ports = append(ports, port)
+				case StateClosed:
+					// Ignore.
+				}
 			}
 		}()
 
