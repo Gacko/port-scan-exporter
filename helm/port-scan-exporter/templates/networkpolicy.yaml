@@ -55,7 +55,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: {{ include "port-scan-exporter.namespace" $ }}
+          kubernetes.io/metadata.name: {{ include "port-scan-exporter.namespace" $ }}
       podSelector:
         matchLabels:
           {{- include "port-scan-exporter.selectorLabels" $ | nindent 10 }}
